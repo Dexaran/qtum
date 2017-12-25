@@ -21,6 +21,8 @@ class PlatformStyle;
 class RecentRequestsTableModel;
 class TransactionTableModel;
 class WalletModelTransaction;
+class TokenItemModel;
+class TokenTransactionTableModel;
 
 class CCoinControl;
 class CKeyID;
@@ -28,6 +30,8 @@ class COutPoint;
 class COutput;
 class CPubKey;
 class CWallet;
+class CTokenInfo;
+class CTokenTx;
 class uint256;
 
 QT_BEGIN_NAMESPACE
@@ -128,6 +132,8 @@ public:
     AddressTableModel *getAddressTableModel();
     TransactionTableModel *getTransactionTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
+    TokenItemModel *getTokenItemModel();
+    TokenTransactionTableModel *getTokenTransactionTableModel();
 
     CAmount getBalance(const CCoinControl *coinControl = NULL) const;
     CAmount getUnconfirmedBalance() const;
@@ -168,6 +174,8 @@ public:
     bool changePassphrase(const SecureString &oldPass, const SecureString &newPass);
     // Wallet backup
     bool backupWallet(const QString &filename);
+    // Restore backup
+    bool restoreWallet(const QString &filename, const QString &param);
 
     // RAI object for unlocking wallet, returned by requestUnlock()
     class UnlockContext
@@ -185,6 +193,7 @@ public:
         WalletModel *wallet;
         bool valid;
         mutable bool relock; // mutable, as it can be set to false by copying
+        bool stakingOnly;
 
         void CopyFrom(const UnlockContext& rhs);
     };
@@ -196,6 +205,7 @@ public:
     bool getPrivKey(const CKeyID &address, CKey& vchPrivKeyOut) const;
     void getOutputs(const std::vector<COutPoint>& vOutpoints, std::vector<COutput>& vOutputs);
     bool isSpent(const COutPoint& outpoint) const;
+    bool isUnspentAddress(const std::string& address) const;
     void listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const;
 
     bool isLockedCoin(uint256 hash, unsigned int n) const;
@@ -215,6 +225,17 @@ public:
 
     int getDefaultConfirmTarget() const;
 
+    bool addTokenEntry(const CTokenInfo& token);
+
+    bool addTokenTxEntry(const CTokenTx& tokenTx, bool fFlushOnClose=true);
+
+    bool existTokenEntry(const CTokenInfo& token);
+
+    bool removeTokenEntry(const std::string& sHash);
+
+    QString getRestorePath();
+    QString getRestoreParam();
+
 private:
     CWallet *wallet;
     bool fHaveWatchOnly;
@@ -227,6 +248,8 @@ private:
     AddressTableModel *addressTableModel;
     TransactionTableModel *transactionTableModel;
     RecentRequestsTableModel *recentRequestsTableModel;
+    TokenItemModel *tokenItemModel;
+    TokenTransactionTableModel *tokenTransactionTableModel;
 
     // Cache some values to be able to detect changes
     CAmount cachedBalance;
@@ -242,9 +265,13 @@ private:
 
     QTimer *pollTimer;
 
+    QString restorePath;
+    QString restoreParam;
+
     void subscribeToCoreSignals();
     void unsubscribeFromCoreSignals();
     void checkBalanceChanged();
+    void checkTokenBalanceChanged();
 
 Q_SIGNALS:
     // Signal that balance in wallet changed
